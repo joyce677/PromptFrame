@@ -675,10 +675,7 @@ function HeroSearch({
           <Sparkles size={16} />
           社区作品灵感库
         </p>
-        <h1>
-          把论坛作品，变成<span>可检索</span>的灵感画廊
-        </h1>
-        <p className="hero-subtitle">收录社区优质 AI 作品与 Prompt，便于搜索、学习与二次创作</p>
+        <h1>灵感画廊</h1>
       </div>
 
       <div className="search-panel" ref={panelRef}>
