@@ -5,7 +5,6 @@ import {
   BookmarkCheck,
   Box,
   CalendarDays,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -31,7 +30,6 @@ import {
   Tag,
   TrendingUp,
   Upload,
-  UserCircle,
   Users,
   X,
 } from "lucide-react";
@@ -156,6 +154,7 @@ export default function App() {
   const searchPanelRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const lastScrollYRef = useRef(0);
+  const favoriteEntryScrollYRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -375,15 +374,30 @@ export default function App() {
   }
 
   function showFavoriteResults() {
-    if (!favorites.length) {
+    if (!favorites.length && !showFavoritesOnly) {
       setToast("收藏夹为空");
       return;
     }
 
-    setSearchTerm("");
-    setCategory("全部");
-    setViewMode("list");
-    setShowFavoritesOnly((current) => !current);
+    const scrollToPosition = (top: number) => {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top, behavior: "smooth" });
+      });
+    };
+
+    if (showFavoritesOnly) {
+      setShowFavoritesOnly(false);
+      scrollToPosition(favoriteEntryScrollYRef.current);
+    } else {
+      favoriteEntryScrollYRef.current = window.scrollY;
+      setSearchTerm("");
+      setCategory("全部");
+      setShowFavoritesOnly(true);
+      scrollToPosition(0);
+    }
+
+    setViewMode("grid");
+    setHeaderHidden(false);
   }
 
   function openRandomItem() {
@@ -616,10 +630,6 @@ function Header({
             title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
           >
             {theme === "dark" ? <SunMedium size={20} /> : <Moon size={20} />}
-          </button>
-          <button className="profile-button" type="button" aria-label="用户菜单">
-            <UserCircle size={28} />
-            <ChevronDown size={16} />
           </button>
         </nav>
       </div>
@@ -1057,7 +1067,7 @@ function Sidebar({
             收藏夹
           </strong>
           <button type="button" onClick={onShowAllFavorites}>
-            {showFavoritesOnly ? "退出只看" : "查看全部"}
+            {showFavoritesOnly ? "退出收藏夹" : "查看全部"}
           </button>
         </div>
         {favoriteItems.length ? (

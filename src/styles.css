@@ -241,8 +241,7 @@ img {
 }
 
 .ghost-button,
-.circle-button,
-.profile-button {
+.circle-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -270,16 +269,8 @@ img {
   color: #ffb928;
 }
 
-.profile-button {
-  padding: 0 12px;
-  border-radius: 999px;
-  color: var(--primary);
-  background: linear-gradient(180deg, #edf4ff, #ffffff);
-}
-
 .ghost-button:hover,
-.circle-button:hover,
-.profile-button:hover {
+.circle-button:hover {
   transform: translateY(-2px);
   border-color: rgba(31, 99, 255, 0.3);
   box-shadow: var(--soft-shadow);
@@ -1956,7 +1947,6 @@ main {
 
 .app-shell[data-theme="dark"] .ghost-button,
 .app-shell[data-theme="dark"] .circle-button,
-.app-shell[data-theme="dark"] .profile-button,
 .app-shell[data-theme="dark"] .search-panel,
 .app-shell[data-theme="dark"] .category-tabs button,
 .app-shell[data-theme="dark"] .sort-select select,
@@ -1973,10 +1963,6 @@ main {
   background: rgba(23, 32, 49, 0.86);
   color: #edf4ff;
   box-shadow: var(--soft-shadow);
-}
-
-.app-shell[data-theme="dark"] .profile-button {
-  background: linear-gradient(180deg, rgba(42, 58, 87, 0.96), rgba(23, 32, 49, 0.96));
 }
 
 .app-shell[data-theme="dark"] .theme-toggle {

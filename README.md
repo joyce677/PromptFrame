@@ -25,6 +25,32 @@ npm run build
 npm run preview
 ```
 
+## Docker Deployment
+
+Build and run the app on a new server with Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+Open:
+
+```text
+http://server-ip:8080
+```
+
+Use a different host port if needed:
+
+```bash
+PROMPT_FRAME_PORT=3000 docker compose up -d --build
+```
+
+Stop the service:
+
+```bash
+docker compose down
+```
+
 ## Data
 
 Gallery items are loaded from `public/data/gallery.json`.

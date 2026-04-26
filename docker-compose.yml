@@ -1,0 +1,8 @@
+services:
+  prompt-frame:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PROMPT_FRAME_PORT:-8080}:80"
+    restart: unless-stopped
