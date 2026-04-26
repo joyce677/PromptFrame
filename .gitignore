@@ -4,3 +4,4 @@ dist
 *.local
 *.tsbuildinfo
 *_GPT_Image_2_*.html
+public/data/

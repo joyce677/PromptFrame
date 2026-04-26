@@ -163,6 +163,10 @@ export default function App() {
       try {
         setLoading(true);
         const response = await fetch(DATA_URL);
+        if (response.status === 404) {
+          if (!cancelled) setItems([]);
+          return;
+        }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = (await response.json()) as GalleryItem[];
         if (!cancelled) setItems(data);

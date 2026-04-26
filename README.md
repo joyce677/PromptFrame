@@ -53,9 +53,11 @@ docker compose down
 
 ## Data
 
-Gallery items are loaded from `public/data/gallery.json`.
+Gallery data is intentionally not committed to this repository.
 
-Imported JSON is appended in the current browser session and does not modify the local data file.
+You can import JSON from the app UI. Imported JSON is appended in the current browser session and does not modify repository files.
+
+For local-only seed data, create `public/data/gallery.json`. The `public/data/` directory is ignored by Git and Docker builds.
 
 Supported fields:
 
