@@ -163,6 +163,7 @@ export default function App() {
   const [headerHidden, setHeaderHidden] = useState(false);
   const [compactSearchVisible, setCompactSearchVisible] = useState(false);
   const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
+  const [favoriteDrawerOpen, setFavoriteDrawerOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchPanelRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -232,11 +233,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = activeItem ? "hidden" : "";
+    document.body.style.overflow = activeItem || favoriteDrawerOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [activeItem]);
+  }, [activeItem, favoriteDrawerOpen]);
 
   useEffect(() => {
     if (!toast) return;
@@ -399,6 +400,11 @@ export default function App() {
     setHeaderHidden(false);
   }
 
+  function openFavoriteItem(item: GalleryItem) {
+    setFavoriteDrawerOpen(false);
+    setActiveItem(item);
+  }
+
   function openRandomItem() {
     if (!filteredItems.length) {
       setToast("当前没有可随机的作品");
@@ -495,7 +501,7 @@ export default function App() {
             category={category}
             favoriteItems={favoriteItems}
             onClearRecent={() => setRecentSearches([])}
-            onOpenFavorite={setActiveItem}
+            onOpenFavorite={openFavoriteItem}
             onPickRecent={(query) => setSearchTerm(query)}
             onPickTag={(tag) => {
               if (CATEGORIES.includes(tag as Category)) setCategory(tag as Category);
@@ -512,6 +518,29 @@ export default function App() {
 
         <CtaBand />
       </main>
+
+      <FloatingFavoriteButton
+        open={favoriteDrawerOpen}
+        totalFavorites={favorites.length}
+        onClick={() => {
+          setHeaderHidden(false);
+          setFavoriteDrawerOpen(true);
+        }}
+      />
+
+      <FavoriteDrawer
+        favoriteItems={favoriteItems}
+        onClose={() => setFavoriteDrawerOpen(false)}
+        onOpenFavorite={openFavoriteItem}
+        onShowAllFavorites={() => {
+          const shouldClose = Boolean(favorites.length || showFavoritesOnly);
+          showFavoriteResults();
+          if (shouldClose) setFavoriteDrawerOpen(false);
+        }}
+        open={favoriteDrawerOpen}
+        showFavoritesOnly={showFavoritesOnly}
+        totalFavorites={favorites.length}
+      />
 
       <DetailModal
         favorite={activeFavorite}
@@ -1080,30 +1109,157 @@ function Sidebar({
         </button>
       </section>
 
-      <section className="side-card">
-        <div className="side-title">
-          <strong>
-            <Star size={18} />
-            收藏夹
-          </strong>
-          <button type="button" onClick={onShowAllFavorites}>
-            {showFavoritesOnly ? "退出收藏夹" : "查看全部"}
+      <FavoritesPanel
+        favoriteItems={favoriteItems}
+        onOpenFavorite={onOpenFavorite}
+        onShowAllFavorites={onShowAllFavorites}
+        showFavoritesOnly={showFavoritesOnly}
+        totalFavorites={totalFavorites}
+        variant="sidebar"
+      />
+    </aside>
+  );
+}
+
+function FloatingFavoriteButton({
+  open,
+  onClick,
+  totalFavorites,
+}: {
+  open: boolean;
+  onClick: () => void;
+  totalFavorites: number;
+}) {
+  return (
+    <button
+      className={`favorite-fab ${open ? "active" : ""}`}
+      type="button"
+      onClick={onClick}
+      aria-label={`打开收藏夹，共 ${totalFavorites} 个收藏`}
+    >
+      <span className="favorite-fab-icon">
+        <Star size={21} />
+      </span>
+      <span>收藏夹</span>
+      <strong>{totalFavorites}</strong>
+    </button>
+  );
+}
+
+function FavoriteDrawer({
+  favoriteItems,
+  onClose,
+  onOpenFavorite,
+  onShowAllFavorites,
+  open,
+  showFavoritesOnly,
+  totalFavorites,
+}: {
+  favoriteItems: GalleryItem[];
+  onClose: () => void;
+  onOpenFavorite: (item: GalleryItem) => void;
+  onShowAllFavorites: () => void;
+  open: boolean;
+  showFavoritesOnly: boolean;
+  totalFavorites: number;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, open]);
+
+  return (
+    <div
+      className={`favorite-drawer-backdrop ${open ? "open" : ""}`}
+      role="presentation"
+      aria-hidden={!open}
+      onClick={onClose}
+    >
+      <aside
+        className="favorite-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="收藏夹"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="favorite-drawer-header">
+          <div>
+            <span>我的收藏</span>
+            <strong>{totalFavorites} 个灵感作品</strong>
+          </div>
+          <button type="button" onClick={onClose} aria-label="关闭收藏夹">
+            <X size={22} />
           </button>
         </div>
-        {favoriteItems.length ? (
-          <div className="favorite-grid">
-            {favoriteItems.slice(0, 4).map((item) => (
-              <button key={itemKey(item)} type="button" onClick={() => onOpenFavorite(item)}>
-                <img src={item.thumb_url || item.image_url} alt={getDisplayTitle(item)} loading="lazy" />
-              </button>
-            ))}
-          </div>
-        ) : (
-          <span className="muted">点击作品卡片右下角书签收藏。</span>
-        )}
-        <p className="favorite-count">共 {totalFavorites} 个收藏</p>
-      </section>
-    </aside>
+
+        <FavoritesPanel
+          favoriteItems={favoriteItems}
+          onOpenFavorite={onOpenFavorite}
+          onShowAllFavorites={onShowAllFavorites}
+          showFavoritesOnly={showFavoritesOnly}
+          totalFavorites={totalFavorites}
+          variant="drawer"
+        />
+      </aside>
+    </div>
+  );
+}
+
+function FavoritesPanel({
+  favoriteItems,
+  onOpenFavorite,
+  onShowAllFavorites,
+  showFavoritesOnly,
+  totalFavorites,
+  variant,
+}: {
+  favoriteItems: GalleryItem[];
+  onOpenFavorite: (item: GalleryItem) => void;
+  onShowAllFavorites: () => void;
+  showFavoritesOnly: boolean;
+  totalFavorites: number;
+  variant: "sidebar" | "drawer";
+}) {
+  const visibleItems = variant === "sidebar" ? favoriteItems.slice(0, 4) : favoriteItems;
+  const isDrawer = variant === "drawer";
+
+  return (
+    <section className={`favorites-panel ${isDrawer ? "drawer-favorites-panel" : "side-card desktop-favorites-card"}`}>
+      <div className="side-title favorites-panel-title">
+        <strong>
+          <Star size={18} />
+          收藏夹
+        </strong>
+        <button type="button" onClick={onShowAllFavorites} disabled={!totalFavorites && !showFavoritesOnly}>
+          {showFavoritesOnly ? "退出收藏夹" : "查看全部"}
+        </button>
+      </div>
+      {visibleItems.length ? (
+        <div className={`favorite-grid ${isDrawer ? "favorite-grid-drawer" : ""}`}>
+          {visibleItems.map((item) => (
+            <button key={itemKey(item)} type="button" onClick={() => onOpenFavorite(item)}>
+              <img src={item.thumb_url || item.image_url} alt={getDisplayTitle(item)} loading="lazy" />
+              {isDrawer ? (
+                <span>
+                  #{item.post_number} · 图{item.image_index}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="favorite-empty">
+          <Bookmark size={22} />
+          <span>还没有收藏作品</span>
+          <small>点击作品卡片右下角书签，收藏会出现在这里。</small>
+        </div>
+      )}
+      <p className="favorite-count">共 {totalFavorites} 个收藏</p>
+    </section>
   );
 }
 
