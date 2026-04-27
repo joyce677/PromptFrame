@@ -3,6 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      DATABASE_PATH: /data/prompt-frame.sqlite
+      PORT: 3000
     ports:
-      - "${PROMPT_FRAME_PORT:-8080}:80"
+      - "${PROMPT_FRAME_PORT:-8080}:3000"
+    volumes:
+      - prompt-frame-data:/data
     restart: unless-stopped
+
+volumes:
+  prompt-frame-data:

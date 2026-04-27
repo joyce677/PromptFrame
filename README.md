@@ -1,6 +1,6 @@
 # PromptFrame
 
-PromptFrame is a Vite, React, and TypeScript app for browsing, searching, collecting, importing, and exporting AI image prompts.
+PromptFrame is a Vite, React, TypeScript, Node, and SQLite app for browsing, searching, collecting, importing, and exporting AI image prompts.
 
 ## Features
 
@@ -9,7 +9,8 @@ PromptFrame is a Vite, React, and TypeScript app for browsing, searching, collec
 - Detail modal with image metadata and prompt copy
 - Favorites and recent searches stored locally
 - Read-only original tags and editable user tags
-- JSON import and export
+- Shared JSON import and export
+- Server-side SQLite persistence
 
 ## Development
 
@@ -18,11 +19,13 @@ npm install
 npm run dev
 ```
 
+The development command starts both the Node API server and Vite. The Vite dev server proxies `/api/*` to the Node server.
+
 ## Build
 
 ```bash
 npm run build
-npm run preview
+npm run start
 ```
 
 ## Docker Deployment
@@ -51,13 +54,15 @@ Stop the service:
 docker compose down
 ```
 
+Imported gallery data is stored in the `prompt-frame-data` Docker volume and survives container rebuilds and restarts.
+
 ## Data
 
 Gallery data is intentionally not committed to this repository.
 
-You can import JSON from the app UI. Imported JSON is appended in the current browser session and does not modify repository files.
+You can import JSON from the app UI. Imported JSON is written to the server-side SQLite database and becomes visible to all users.
 
-For local-only seed data, create `public/data/gallery.json`. The `public/data/` directory is ignored by Git and Docker builds.
+By default the SQLite file is created at `.data/prompt-frame.sqlite` in local development and `/data/prompt-frame.sqlite` in Docker. Override it with `DATABASE_PATH`.
 
 Supported fields:
 

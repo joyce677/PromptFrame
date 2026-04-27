@@ -49,7 +49,8 @@ import {
   topTags,
 } from "./utils";
 
-const DATA_URL = `${import.meta.env.BASE_URL}data/gallery.json`;
+const API_ITEMS_URL = `${import.meta.env.BASE_URL}api/items`;
+const API_IMPORT_URL = `${import.meta.env.BASE_URL}api/import`;
 const FAVORITES_KEY = "linux-do-gallery:favorites";
 const RECENT_SEARCHES_KEY = "linux-do-gallery:recent-searches";
 const THEME_KEY = "linux-do-gallery:theme";
@@ -132,6 +133,18 @@ function normalizeImportedItems(value: unknown): { items: GalleryItem[]; invalid
   return { items, invalid };
 }
 
+async function requestGalleryItems() {
+  const response = await fetch(API_ITEMS_URL);
+  if (response.status === 404) return [];
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) return [];
+
+  const payload = (await response.json()) as unknown;
+  return normalizeImportedItems(payload).items;
+}
+
 export default function App() {
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,18 +175,8 @@ export default function App() {
     async function loadGallery() {
       try {
         setLoading(true);
-        const response = await fetch(DATA_URL);
-        if (response.status === 404) {
-          if (!cancelled) setItems([]);
-          return;
-        }
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const contentType = response.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) {
-          if (!cancelled) setItems([]);
-          return;
-        }
-        const data = (await response.json()) as GalleryItem[];
+        setError("");
+        const data = await requestGalleryItems();
         if (!cancelled) setItems(data);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "数据加载失败");
@@ -340,43 +343,30 @@ export default function App() {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text) as unknown;
-      const result = normalizeImportedItems(parsed);
+      const response = await fetch(API_IMPORT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
 
-      if (!result.items.length) {
-        setToast("没有找到可导入的作品数据");
-        return;
+      const contentType = response.headers.get("content-type") || "";
+      const payload = contentType.includes("application/json") ? ((await response.json()) as unknown) : null;
+
+      if (!response.ok) {
+        const message =
+          payload && typeof payload === "object" && "error" in payload ? String(payload.error) : `HTTP ${response.status}`;
+        throw new Error(message);
       }
 
-      const existingKeys = new Set(items.map((item) => `${item.image_url}|${item.post_number}|${item.image_index}`));
-      const added: GalleryItem[] = [];
-      let duplicated = 0;
-      const importedUserTags: Record<string, string[]> = {};
-
-      for (const item of result.items) {
-        const key = `${item.image_url}|${item.post_number}|${item.image_index}`;
-        const stableKey = itemKey(item);
-        if (item.user_tags?.length) importedUserTags[stableKey] = item.user_tags;
-        if (existingKeys.has(key)) {
-          duplicated += 1;
-          continue;
-        }
-        existingKeys.add(key);
-        added.push(item);
-      }
-
-      if (added.length) setItems((current) => [...current, ...added]);
-      if (Object.keys(importedUserTags).length) {
-        setUserTagsByItem((current) => {
-          const next = { ...current };
-          for (const [key, tags] of Object.entries(importedUserTags)) {
-            next[key] = Array.from(new Set([...(next[key] || []), ...tags]));
-          }
-          return next;
-        });
-      }
-      setToast(`导入 ${added.length} 条，跳过 ${duplicated + result.invalid} 条`);
-    } catch {
-      setToast("导入失败：JSON 格式不正确");
+      const importResult = payload as Partial<{ added: number; duplicated: number; invalid: number }>;
+      const data = await requestGalleryItems();
+      setItems(data);
+      setError("");
+      setToast(
+        `导入 ${Number(importResult.added || 0)} 条，跳过 ${Number(importResult.duplicated || 0) + Number(importResult.invalid || 0)} 条`,
+      );
+    } catch (err) {
+      setToast(err instanceof SyntaxError ? "导入失败：JSON 格式不正确" : "导入失败：服务端写入失败");
     } finally {
       if (importInputRef.current) importInputRef.current.value = "";
     }
