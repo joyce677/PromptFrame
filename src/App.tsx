@@ -447,10 +447,11 @@ export default function App() {
         headerSearchOpen={headerSearchOpen}
         onImport={() => importInputRef.current?.click()}
         onSearchSubmit={commitHeaderSearch}
-        onToggleHeaderSearch={() => {
+        onActivateHeaderSearch={() => {
           setHeaderHidden(false);
-          setHeaderSearchOpen((current) => !current);
+          setHeaderSearchOpen(true);
         }}
+        onCloseHeaderSearch={() => setHeaderSearchOpen(false)}
         onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -550,7 +551,8 @@ function Header({
   onExport,
   onImport,
   onSearchSubmit,
-  onToggleHeaderSearch,
+  onActivateHeaderSearch,
+  onCloseHeaderSearch,
   onToggleTheme,
   searchTerm,
   setSearchTerm,
@@ -563,7 +565,8 @@ function Header({
   onExport: () => void;
   onImport: () => void;
   onSearchSubmit: () => void;
-  onToggleHeaderSearch: () => void;
+  onActivateHeaderSearch: () => void;
+  onCloseHeaderSearch: () => void;
   onToggleTheme: () => void;
   searchTerm: string;
   setSearchTerm: (value: string) => void;
@@ -592,31 +595,38 @@ function Header({
               <button
                 className={`circle-button header-search-trigger ${headerSearchOpen ? "active" : ""}`}
                 type="button"
-                onClick={onToggleHeaderSearch}
-                aria-label="打开搜索"
+                onClick={onActivateHeaderSearch}
+                aria-label="聚焦页眉搜索"
               >
                 <Search size={20} />
               </button>
-              {headerSearchOpen ? (
-                <div className="header-search-popover">
-                  <Search size={18} />
-                  <input
-                    ref={headerSearchInputRef}
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") onSearchSubmit();
-                      if (event.key === "Escape") onToggleHeaderSearch();
-                    }}
-                    placeholder="输入关键词并回车..."
-                  />
-                  {searchTerm ? (
-                    <button type="button" onClick={() => setSearchTerm("")} aria-label="清空搜索">
-                      <X size={16} />
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
+              <div className={`header-search-inline ${headerSearchOpen ? "active" : ""}`}>
+                <input
+                  ref={headerSearchInputRef}
+                  value={searchTerm}
+                  onFocus={onActivateHeaderSearch}
+                  onBlur={onCloseHeaderSearch}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") onSearchSubmit();
+                    if (event.key === "Escape") {
+                      onCloseHeaderSearch();
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="搜索楼层 / 用户名 / Prompt 关键词"
+                />
+                {searchTerm ? (
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => setSearchTerm("")}
+                    aria-label="清空搜索"
+                  >
+                    <X size={16} />
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
           <button className="ghost-button" type="button" onClick={onRandom}>
