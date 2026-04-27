@@ -168,6 +168,11 @@ export default function App() {
           return;
         }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          if (!cancelled) setItems([]);
+          return;
+        }
         const data = (await response.json()) as GalleryItem[];
         if (!cancelled) setItems(data);
       } catch (err) {
@@ -680,6 +685,7 @@ function HeroSearch({
           社区作品灵感库
         </p>
         <h1>灵感画廊</h1>
+        <p className="mobile-hero-subtitle">浏览作品 · 学习 Prompt · 检索归档</p>
       </div>
 
       <div className="search-panel" ref={panelRef}>
@@ -725,19 +731,32 @@ function FilterBar({
   sortMode: SortMode;
   viewMode: ViewMode;
 }) {
+  const categoryIcons: Record<Category, LucideIcon> = {
+    全部: Grid3X3,
+    海报: ImageIcon,
+    城市: Layers,
+    人物: Users,
+    插画: Palette,
+    国风: Sparkles,
+  };
+
   return (
     <div className="filter-row">
       <div className="category-tabs" aria-label="分类筛选">
-        {CATEGORIES.map((item) => (
-          <button
-            className={item === category ? "active" : ""}
-            key={item}
-            type="button"
-            onClick={() => setCategory(item)}
-          >
-            {item}
-          </button>
-        ))}
+        {CATEGORIES.map((item) => {
+          const Icon = categoryIcons[item];
+          return (
+            <button
+              className={item === category ? "active" : ""}
+              key={item}
+              type="button"
+              onClick={() => setCategory(item)}
+            >
+              <Icon className="mobile-category-icon" size={18} />
+              {item}
+            </button>
+          );
+        })}
       </div>
 
       <div className="view-tools">
@@ -1168,6 +1187,14 @@ function DetailModal({
         aria-label="Prompt 详情"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="mobile-detail-topbar">
+          <button type="button" onClick={onClose} aria-label="关闭详情">
+            <ChevronLeft size={26} />
+          </button>
+          <strong>图片详情</strong>
+          <span aria-hidden="true" />
+        </div>
+
         <div className="detail-gallery">
           <div className="detail-image-frame">
             {previousItem ? (
@@ -1252,7 +1279,8 @@ function DetailModal({
           <section className="detail-section prompt-detail">
             <h3>
               <Copy size={18} />
-              Prompt / Metadata
+              <span className="desktop-prompt-title">Prompt / Metadata</span>
+              <span className="mobile-prompt-title">Prompt / 提示词</span>
             </h3>
             <div className="detail-prompt-scroll">{item.prompt || "未提供"}</div>
             <div className="modal-actions detail-actions">
