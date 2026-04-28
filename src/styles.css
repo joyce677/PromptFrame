@@ -1298,12 +1298,15 @@ main {
   line-height: 1.55;
 }
 
+.desktop-favorites-card {
+  display: none;
+}
 .favorite-fab {
   position: fixed;
   right: 24px;
   bottom: 24px;
   z-index: 70;
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 56px;
@@ -2602,9 +2605,6 @@ main {
     font-size: 17px;
   }
 
-  .favorite-fab {
-    display: inline-flex;
-  }
 
   .detail-modal {
     display: flex;
@@ -2678,10 +2678,6 @@ main {
 
   .view-tools {
     justify-content: space-between;
-  }
-
-  .desktop-favorites-card {
-    display: none;
   }
 
   .sidebar {
