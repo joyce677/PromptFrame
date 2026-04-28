@@ -2824,50 +2824,66 @@ main {
   }
 
   .topbar-inner {
-    min-height: 72px;
-    gap: 14px;
+    min-height: 62px;
+    gap: 12px;
+    padding: 10px 0;
   }
 
   .brand {
-    gap: 12px;
+    gap: 8px;
   }
 
   .brand-mark {
-    width: 48px;
-    height: 48px;
-    border-radius: 15px;
-    font-size: 28px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 18px;
+    box-shadow: 0 6px 12px rgba(69, 92, 255, 0.22);
   }
 
   .brand strong {
-    font-size: 20px;
+    font-size: 15px;
+    letter-spacing: -0.02em;
   }
 
   .brand small {
-    font-size: 13px;
+    display: none;
   }
 
   .top-actions {
-    gap: 10px;
+    gap: 8px;
   }
 
   .header-search-inline {
-    width: clamp(220px, 24vw, 320px);
-    min-height: 48px;
+    width: clamp(180px, 20vw, 280px);
+    min-height: 40px;
+    border-radius: 12px;
   }
 
   .ghost-button,
   .circle-button {
-    min-height: 48px;
+    min-height: 40px;
+    border-radius: 12px;
   }
 
   .ghost-button {
-    padding: 0 14px;
+    gap: 6px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .ghost-button svg {
+    width: 16px;
+    height: 16px;
   }
 
   .hero {
     min-height: 230px;
     padding: 34px 0 18px;
+  }
+
+  .hero-art {
+    opacity: 0.35;
   }
 
   .search-panel {
