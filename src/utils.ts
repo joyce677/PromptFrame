@@ -67,6 +67,154 @@ export function getAllTags(item: GalleryItem, userTags: string[] = []) {
   return Array.from(new Set([...getOriginalTags(item), ...normalizeTags(userTags)]));
 }
 
+export type RelatedGalleryItem = {
+  item: GalleryItem;
+  score: number;
+  reasons: string[];
+};
+
+const GENERIC_TAGS = new Set(["Prompt", "组图", "灵感"]);
+const STOP_WORDS = new Set([
+  "the",
+  "and",
+  "with",
+  "from",
+  "this",
+  "that",
+  "into",
+  "your",
+  "prompt",
+  "image",
+  "style",
+  "生成",
+  "一张",
+  "请参考",
+  "上传",
+  "照片",
+]);
+
+function getItemUserTags(item: GalleryItem, userTagsByItem: Record<string, string[]>) {
+  return normalizeTags(userTagsByItem[itemKey(item)] || item.user_tags || []);
+}
+
+function getComparableTags(item: GalleryItem, userTags: string[] = []) {
+  return getAllTags(item, userTags).filter((tag) => !GENERIC_TAGS.has(tag));
+}
+
+function toKeywordTokens(value: string) {
+  const source = normalizeText(value);
+  const tokens = new Set<string>();
+
+  for (const word of source.match(/[a-z0-9][a-z0-9_-]{2,}/g) || []) {
+    if (!STOP_WORDS.has(word)) tokens.add(word);
+  }
+
+  for (const phrase of source.match(/[\u4e00-\u9fff]{2,}/g) || []) {
+    for (let index = 0; index < phrase.length - 1; index += 1) {
+      const token = phrase.slice(index, index + 2);
+      if (!STOP_WORDS.has(token)) tokens.add(token);
+    }
+  }
+
+  return tokens;
+}
+
+function getKeywordTokens(item: GalleryItem) {
+  return toKeywordTokens([item.title, item.info, item.prompt].join(" "));
+}
+
+function intersectValues(a: string[], b: string[]) {
+  const target = new Set(b.map((value) => normalizeText(value)));
+  return a.filter((value) => target.has(normalizeText(value)));
+}
+
+function intersectTokens(a: Set<string>, b: Set<string>) {
+  const shared: string[] = [];
+  for (const token of a) {
+    if (b.has(token)) shared.push(token);
+  }
+  return shared;
+}
+
+export function rankRelatedItems(
+  target: GalleryItem,
+  allItems: GalleryItem[],
+  userTagsByItem: Record<string, string[]> = {},
+  limit = 12,
+): RelatedGalleryItem[] {
+  const targetKey = itemKey(target);
+  const targetOriginalTags = getOriginalTags(target).filter((tag) => !GENERIC_TAGS.has(tag));
+  const targetUserTags = getItemUserTags(target, userTagsByItem);
+  const targetKeywords = getKeywordTokens(target);
+  const targetAllTags = getComparableTags(target, targetUserTags);
+
+  const scored = allItems
+    .filter((candidate) => itemKey(candidate) !== targetKey)
+    .map((candidate) => {
+      const reasons: string[] = [];
+      let score = 0;
+
+      if (candidate.post_number === target.post_number) {
+        score += 100;
+        reasons.push("同楼层");
+      }
+
+      const candidateOriginalTags = getOriginalTags(candidate).filter((tag) => !GENERIC_TAGS.has(tag));
+      const candidateUserTags = getItemUserTags(candidate, userTagsByItem);
+      const sharedOriginalTags = intersectValues(targetOriginalTags, candidateOriginalTags);
+      const sharedUserTags = intersectValues(targetUserTags, candidateUserTags);
+
+      if (sharedOriginalTags.length) {
+        score += sharedOriginalTags.length * 32;
+        reasons.push(`标签：${sharedOriginalTags.slice(0, 2).join("、")}`);
+      }
+
+      if (sharedUserTags.length) {
+        score += sharedUserTags.length * 38;
+        reasons.push(`我的标签：${sharedUserTags.slice(0, 2).join("、")}`);
+      }
+
+      if (normalizeText(candidate.username) === normalizeText(target.username)) {
+        score += 28;
+        reasons.push("同作者");
+      }
+
+      const sharedKeywords = intersectTokens(targetKeywords, getKeywordTokens(candidate));
+      if (sharedKeywords.length) {
+        score += Math.min(30, sharedKeywords.length * 4);
+        reasons.push("关键词相似");
+      }
+
+      const postDistance = Math.abs(candidate.post_number - target.post_number);
+      if (postDistance > 0 && postDistance <= 5) {
+        score += 10;
+        reasons.push("相邻楼层");
+      } else if (postDistance > 0 && postDistance <= 20) {
+        score += 5;
+      }
+
+      if (!reasons.length && targetAllTags.length) score -= 1;
+
+      return {
+        item: candidate,
+        score,
+        reasons: reasons.slice(0, 3),
+        postDistance,
+      };
+    })
+    .filter((candidate) => candidate.score > 0)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.item.post_number === target.post_number && b.item.post_number === target.post_number) {
+        return a.item.image_index - b.item.image_index;
+      }
+      if (a.postDistance !== b.postDistance) return a.postDistance - b.postDistance;
+      return b.item.post_number - a.item.post_number || a.item.image_index - b.item.image_index;
+    });
+
+  return scored.slice(0, limit).map(({ item, score, reasons }) => ({ item, score, reasons }));
+}
+
 export function matchesCategory(item: GalleryItem, category: Category) {
   if (category === "全部") return true;
   return getOriginalTags(item).includes(category);

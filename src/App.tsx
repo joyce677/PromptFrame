@@ -46,8 +46,10 @@ import {
   itemKey,
   itemSearchText,
   matchesCategory,
+  rankRelatedItems,
   topTags,
 } from "./utils";
+import type { RelatedGalleryItem } from "./utils";
 
 const API_ITEMS_URL = `${import.meta.env.BASE_URL}api/items`;
 const API_IMPORT_URL = `${import.meta.env.BASE_URL}api/import`;
@@ -543,6 +545,7 @@ export default function App() {
       />
 
       <DetailModal
+        allItems={items}
         favorite={activeFavorite}
         item={activeItem}
         items={filteredItems}
@@ -552,6 +555,7 @@ export default function App() {
         onRemoveUserTag={removeUserTag}
         onSelect={setActiveItem}
         onToggleFavorite={toggleFavorite}
+        userTagsByItem={userTagsByItem}
         userTags={activeItem ? userTagsByItem[itemKey(activeItem)] || activeItem.user_tags || [] : []}
       />
 
@@ -1282,6 +1286,7 @@ function CtaBand() {
 }
 
 function DetailModal({
+  allItems,
   favorite,
   item,
   items,
@@ -1291,8 +1296,10 @@ function DetailModal({
   onRemoveUserTag,
   onSelect,
   onToggleFavorite,
+  userTagsByItem,
   userTags,
 }: {
+  allItems: GalleryItem[];
   favorite: boolean;
   item: GalleryItem | null;
   items: GalleryItem[];
@@ -1302,10 +1309,12 @@ function DetailModal({
   onRemoveUserTag: (item: GalleryItem, tag: string) => void;
   onSelect: (item: GalleryItem) => void;
   onToggleFavorite: (item: GalleryItem) => void;
+  userTagsByItem: Record<string, string[]>;
   userTags: string[];
 }) {
   const [imageSize, setImageSize] = useState("读取中");
   const [newTag, setNewTag] = useState("");
+  const [relatedDrawerOpen, setRelatedDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!item) return;
@@ -1319,6 +1328,7 @@ function DetailModal({
   useEffect(() => {
     setImageSize("读取中");
     setNewTag("");
+    setRelatedDrawerOpen(false);
   }, [item]);
 
   if (!item) return null;
@@ -1328,14 +1338,17 @@ function DetailModal({
   const currentIndex = items.findIndex((candidate) => itemKey(candidate) === currentKey);
   const previousItem = currentIndex > 0 ? items[currentIndex - 1] : null;
   const nextItem = currentIndex >= 0 && currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
-  const samePostItems = items.filter((candidate) => candidate.post_number === item.post_number);
-  const relatedItems = (samePostItems.length > 1 ? samePostItems : [item, previousItem, nextItem].filter(Boolean)).slice(
-    0,
-    2,
-  ) as GalleryItem[];
+  const samePostItems = allItems.filter((candidate) => candidate.post_number === item.post_number);
+  const relatedResults = rankRelatedItems(item, allItems, userTagsByItem, 12);
+  const relatedPreview = relatedResults.slice(0, 2);
+
+  function selectRelatedItem(nextRelatedItem: GalleryItem) {
+    setRelatedDrawerOpen(false);
+    onSelect(nextRelatedItem);
+  }
 
   return (
-    <div className="modal-backdrop detail-backdrop" role="presentation" onClick={onClose}>
+    <div className="modal-backdrop detail-backdrop" role="presentation" onClick={relatedDrawerOpen ? undefined : onClose}>
       <section
         className="modal-panel detail-modal"
         role="dialog"
@@ -1374,17 +1387,20 @@ function DetailModal({
           </div>
 
           <div className="detail-thumbs">
-            {relatedItems.map((candidate) => (
+            <button className="active" type="button" onClick={() => onSelect(item)} aria-label="当前作品">
+              <img src={item.thumb_url || item.image_url} alt={getDisplayTitle(item)} loading="lazy" />
+            </button>
+            {relatedPreview.map(({ item: candidate, reasons }) => (
               <button
-                className={itemKey(candidate) === currentKey ? "active" : ""}
                 key={itemKey(candidate)}
                 type="button"
-                onClick={() => onSelect(candidate)}
+                onClick={() => selectRelatedItem(candidate)}
+                title={reasons.join(" / ") || "相关作品"}
               >
                 <img src={candidate.thumb_url || candidate.image_url} alt={getDisplayTitle(candidate)} loading="lazy" />
               </button>
             ))}
-            <button className="more-related" type="button" onClick={() => (nextItem ? onSelect(nextItem) : undefined)}>
+            <button className="more-related" type="button" onClick={() => setRelatedDrawerOpen(true)}>
               <span>＋</span>
               更多相关作品
             </button>
@@ -1519,7 +1535,93 @@ function DetailModal({
             </div>
           </section>
         </div>
+
+        <RelatedDrawer
+          onClose={() => setRelatedDrawerOpen(false)}
+          onSelect={selectRelatedItem}
+          open={relatedDrawerOpen}
+          relatedItems={relatedResults}
+        />
       </section>
+    </div>
+  );
+}
+
+function RelatedDrawer({
+  onClose,
+  onSelect,
+  open,
+  relatedItems,
+}: {
+  onClose: () => void;
+  onSelect: (item: GalleryItem) => void;
+  open: boolean;
+  relatedItems: RelatedGalleryItem[];
+}) {
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, open]);
+
+  return (
+    <div
+      className={`related-drawer-backdrop ${open ? "open" : ""}`}
+      role="presentation"
+      aria-hidden={!open}
+      onClick={onClose}
+    >
+      <aside
+        className="related-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="更多相关作品"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="related-drawer-header">
+          <div>
+            <span>Related Works</span>
+            <strong>更多相关作品</strong>
+          </div>
+          <button type="button" onClick={onClose} aria-label="关闭相关作品">
+            <X size={22} />
+          </button>
+        </div>
+
+        {relatedItems.length ? (
+          <div className="related-grid">
+            {relatedItems.map(({ item, reasons, score }) => {
+              const tags = getAllTags(item).filter((tag) => tag !== "Prompt" && tag !== "组图");
+              return (
+                <button key={itemKey(item)} type="button" onClick={() => onSelect(item)}>
+                  <img src={item.thumb_url || item.image_url} alt={getDisplayTitle(item)} loading="lazy" />
+                  <span className="related-card-body">
+                    <strong>{getDisplayTitle(item)}</strong>
+                    <small>
+                      #{item.post_number} · @{item.username}
+                    </small>
+                    <em>{reasons.length ? reasons.join(" / ") : `相关度 ${score}`}</em>
+                    <span className="related-card-tags">
+                      {(tags.length ? tags : ["灵感"]).slice(0, 3).map((tag) => (
+                        <i key={tag}>{tag}</i>
+                      ))}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="related-empty">
+            <Layers size={24} />
+            <strong>暂无更多相关作品</strong>
+            <span>当前作品暂时没有足够相似的标签、作者或 Prompt 线索。</span>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
