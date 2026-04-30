@@ -506,8 +506,13 @@ export default function App() {
             onOpenFavorite={openFavoriteItem}
             onPickRecent={(query) => setSearchTerm(query)}
             onPickTag={(tag) => {
-              if (CATEGORIES.includes(tag as Category)) setCategory(tag as Category);
-              else setSearchTerm(tag);
+              if (CATEGORIES.includes(tag as Category)) {
+                setCategory((current) => (current === tag ? "全部" : (tag as Category)));
+                setSearchTerm("");
+              } else {
+                setCategory("全部");
+                setSearchTerm((current) => (current.trim() === tag ? "" : tag));
+              }
             }}
             onSaveSearch={saveCurrentSearch}
             onShowAllFavorites={showFavoriteResults}
@@ -779,7 +784,7 @@ function FilterBar({
               className={item === category ? "active" : ""}
               key={item}
               type="button"
-              onClick={() => setCategory(item)}
+              onClick={() => setCategory(item === "全部" || category !== item ? item : "全部")}
             >
               <Icon className="mobile-category-icon" size={18} />
               {item}
