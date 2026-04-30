@@ -660,10 +660,6 @@ function Header({
             <Download size={18} />
             导出
           </button>
-          <button className="ghost-button" type="button" onClick={onImport}>
-            <Upload size={18} />
-            导入
-          </button>
           <button
             className="circle-button theme-toggle"
             type="button"

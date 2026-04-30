@@ -10,6 +10,7 @@ const rootDir = path.resolve(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
 
 const port = Number(process.env.PORT || 3000);
+const importToken = process.env.IMPORT_TOKEN || "";
 const databasePath = process.env.DATABASE_PATH || path.join(rootDir, ".data", "prompt-frame.sqlite");
 
 fs.mkdirSync(path.dirname(databasePath), { recursive: true });
@@ -171,6 +172,12 @@ app.get("/api/items", (_req, res) => {
 });
 
 app.post("/api/import", (req, res) => {
+  if (importToken) {
+    const auth = req.headers.authorization || "";
+    if (auth !== `Bearer ${importToken}`) {
+      return res.status(403).json({ error: "Invalid or missing import token" });
+    }
+  }
   const result = normalizeImportedItems(req.body);
 
   let added = 0;

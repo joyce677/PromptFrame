@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     environment:
       DATABASE_PATH: /data/prompt-frame.sqlite
+      IMPORT_TOKEN: ${IMPORT_TOKEN:-}
       PORT: 3000
     ports:
       - "${PROMPT_FRAME_PORT:-8080}:3000"
