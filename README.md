@@ -1,5 +1,7 @@
 # PromptFrame
 
+> [中文文档](README_CN.md)
+
 PromptFrame is a gallery for browsing, searching, collecting, importing, and exporting AI-generated image prompts (GPT Image 2 community). Built with Vite, React, TypeScript, Node.js, and SQLite.
 
 ## Features
