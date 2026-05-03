@@ -40,7 +40,7 @@ The Express server serves both the built frontend from `dist/` and the API.
 |---|---|---|
 | `PORT` | `3000` | Server listen port |
 | `DATABASE_PATH` | `.data/prompt-frame.sqlite` (dev) / `/data/prompt-frame.sqlite` (Docker) | SQLite file path |
-| `IMPORT_TOKEN` | (empty) | Bearer token required for `POST /api/import`. If empty, import endpoint allows all requests. |
+| `IMPORT_TOKEN` | (empty) | A self-defined secret string used as Bearer token for `POST /api/import`. Set it to any value you choose (e.g. `my-secret-123`), then include it in the `Authorization` header when calling the import endpoint. If left empty, the import endpoint accepts all requests without authentication. |
 
 ## Importing Data
 

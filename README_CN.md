@@ -40,7 +40,7 @@ Express 服务器会同时托管 `dist/` 下的前端静态资源和 API。
 |---|---|---|
 | `PORT` | `3000` | 服务器监听端口 |
 | `DATABASE_PATH` | `.data/prompt-frame.sqlite`（开发）/ `/data/prompt-frame.sqlite`（Docker） | SQLite 数据库文件路径 |
-| `IMPORT_TOKEN` | （空） | `POST /api/import` 所需的 Bearer Token。为空时允许所有请求。 |
+| `IMPORT_TOKEN` | （空） | 自定义密钥字符串，作为 `POST /api/import` 的 Bearer Token。可设为任意值（如 `my-secret-123`），导入时将其填入 `Authorization` 请求头即可。留空则导入接口不做鉴权，允许所有请求。 |
 
 ## 导入数据
 
