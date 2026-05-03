@@ -70,9 +70,49 @@ The import endpoint accepts **any** of these JSON structures:
 ]
 ```
 
-**Format B — object with `items` field:** Wrap the array in `{ "items": [...] }`.
+**Format B — object with `items` field:**
 
-**Format C — object with `data` field:** Wrap the array in `{ "data": [...] }`.
+```json
+{
+  "items": [
+    {
+      "post_number": 42,
+      "username": "alice",
+      "post_url": "https://example.com/post/42",
+      "image_url": "https://example.com/images/42-1.jpg",
+      "thumb_url": "https://example.com/thumbs/42-1.jpg",
+      "title": "城市夜景",
+      "info": "GPT Image 2 生成",
+      "prompt": "A futuristic city at night with neon lights...",
+      "image_index": 1,
+      "original_tags": ["城市", "夜"],
+      "user_tags": []
+    }
+  ]
+}
+```
+
+**Format C — object with `data` field:**
+
+```json
+{
+  "data": [
+    {
+      "post_number": 42,
+      "username": "alice",
+      "post_url": "https://example.com/post/42",
+      "image_url": "https://example.com/images/42-1.jpg",
+      "thumb_url": "https://example.com/thumbs/42-1.jpg",
+      "title": "城市夜景",
+      "info": "GPT Image 2 生成",
+      "prompt": "A futuristic city at night with neon lights...",
+      "image_index": 1,
+      "original_tags": ["城市", "夜"],
+      "user_tags": []
+    }
+  ]
+}
+```
 
 ### Supported Fields
 

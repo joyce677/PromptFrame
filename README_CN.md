@@ -70,9 +70,49 @@ Express 服务器会同时托管 `dist/` 下的前端静态资源和 API。
 ]
 ```
 
-**格式 B — `items` 包裹：** 将数组放在 `{ "items": [...] }` 中。
+**格式 B — `items` 包裹：**
 
-**格式 C — `data` 包裹：** 将数组放在 `{ "data": [...] }` 中。
+```json
+{
+  "items": [
+    {
+      "post_number": 42,
+      "username": "alice",
+      "post_url": "https://example.com/post/42",
+      "image_url": "https://example.com/images/42-1.jpg",
+      "thumb_url": "https://example.com/thumbs/42-1.jpg",
+      "title": "城市夜景",
+      "info": "GPT Image 2 生成",
+      "prompt": "A futuristic city at night with neon lights...",
+      "image_index": 1,
+      "original_tags": ["城市", "夜"],
+      "user_tags": []
+    }
+  ]
+}
+```
+
+**格式 C — `data` 包裹：**
+
+```json
+{
+  "data": [
+    {
+      "post_number": 42,
+      "username": "alice",
+      "post_url": "https://example.com/post/42",
+      "image_url": "https://example.com/images/42-1.jpg",
+      "thumb_url": "https://example.com/thumbs/42-1.jpg",
+      "title": "城市夜景",
+      "info": "GPT Image 2 生成",
+      "prompt": "A futuristic city at night with neon lights...",
+      "image_index": 1,
+      "original_tags": ["城市", "夜"],
+      "user_tags": []
+    }
+  ]
+}
+```
 
 ### 字段说明
 
