@@ -68,17 +68,9 @@ The import endpoint accepts **any** of these JSON structures:
 ]
 ```
 
-**Format B — object with `items` field:**
+**Format B — object with `items` field:** Wrap the array in `{ "items": [...] }`.
 
-```json
-{ "items": [{ ... }] }
-```
-
-**Format C — object with `data` field:**
-
-```json
-{ "data": [{ ... }] }
-```
+**Format C — object with `data` field:** Wrap the array in `{ "data": [...] }`.
 
 ### Supported Fields
 
