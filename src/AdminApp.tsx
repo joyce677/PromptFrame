@@ -131,6 +131,20 @@ type UploadChannel = {
 
 type AdminPage = "items" | "create" | "categories" | "channels" | "backup";
 
+type UploadImageAddMode = "local" | "direct" | "fetch";
+
+function normalizeHttpUrl(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 function itemToEditorState(item: GalleryItem | null): EditorState {
   return {
     id: item?.id,
@@ -201,6 +215,7 @@ export default function AdminApp() {
   const [channelEditorType, setChannelEditorType] = useState<UploadChannelType>("r2");
   const [channelEditorEnabled, setChannelEditorEnabled] = useState(true);
   const [channelEditorConfig, setChannelEditorConfig] = useState<Record<string, string>>({});
+  const [uploadImageAddMode, setUploadImageAddMode] = useStoredState<UploadImageAddMode>("promptframe:admin-image-add-mode", "local");
   const [uploadUrlInput, setUploadUrlInput] = useState("");
   const [uploadBusy, setUploadBusy] = useState(false);
   const tokenInputRef = useRef<HTMLInputElement>(null);
@@ -208,6 +223,7 @@ export default function AdminApp() {
   const restoreInputRef = useRef<HTMLInputElement>(null);
   const uploadFileInputRef = useRef<HTMLInputElement>(null);
   const createInitializedRef = useRef(false);
+  const lastAutoUrlByModeRef = useRef<{ direct: string; fetch: string }>({ direct: "", fetch: "" });
 
   useEffect(() => {
     if (!token) createInitializedRef.current = false;
@@ -394,7 +410,7 @@ export default function AdminApp() {
   }
 
   async function performUpload(mode: "direct" | "fetch" | "data", input: { url?: string; file?: File }) {
-    if (!token) return;
+    if (!token) return false;
     const channelId = activeUploadChannelId;
     setUploadBusy(true);
     try {
@@ -413,12 +429,44 @@ export default function AdminApp() {
       if (!imageUrl) throw new Error("上传成功但未返回 image_url");
       setEditorState((s) => ({ ...s, image_url: imageUrl, thumb_url: thumbUrl || s.thumb_url }));
       setToast(mode === "direct" ? "已使用外链" : "已上传并写入 image_url");
+      setUploadUrlInput("");
+      return true;
     } catch (err) {
       setToast(err instanceof Error ? err.message : "上传失败");
+      return false;
     } finally {
       setUploadBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (uploadImageAddMode === "local") return;
+    if (uploadBusy) return;
+    const normalized = normalizeHttpUrl(uploadUrlInput);
+    if (!normalized) return;
+
+    if (uploadImageAddMode === "direct") {
+      const timer = window.setTimeout(() => {
+        if (lastAutoUrlByModeRef.current.direct === normalized) return;
+        lastAutoUrlByModeRef.current.direct = normalized;
+        setEditorState((s) => (s.image_url.trim() === normalized ? s : { ...s, image_url: normalized }));
+        setToast("已写入 image_url（外链）");
+      }, 450);
+      return () => window.clearTimeout(timer);
+    }
+
+    if (uploadImageAddMode === "fetch") {
+      if (!token) return;
+      const timer = window.setTimeout(async () => {
+        if (uploadBusy) return;
+        if (lastAutoUrlByModeRef.current.fetch === normalized) return;
+        lastAutoUrlByModeRef.current.fetch = normalized;
+        const ok = await performUpload("fetch", { url: normalized });
+        if (!ok) lastAutoUrlByModeRef.current.fetch = "";
+      }, 650);
+      return () => window.clearTimeout(timer);
+    }
+  }, [token, uploadBusy, uploadImageAddMode, uploadUrlInput]);
 
   const filteredItems = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -1446,7 +1494,10 @@ export default function AdminApp() {
                   accept="image/*"
                   onChange={async (event) => {
                     const file = event.target.files?.[0] || null;
-                    if (file) await performUpload("data", { file });
+                    if (file) {
+                      setUploadImageAddMode("local");
+                      await performUpload("data", { file });
+                    }
                     if (uploadFileInputRef.current) uploadFileInputRef.current.value = "";
                   }}
                 />
@@ -1489,10 +1540,20 @@ export default function AdminApp() {
                     <div className="admin-upload-box">
                       <div className="admin-upload-row">
                         <input value={uploadUrlInput} onChange={(event) => setUploadUrlInput(event.target.value)} placeholder="外链地址：https://..." />
-                        <button type="button" className="admin-secondary admin-inline" disabled={uploadBusy || !uploadUrlInput.trim()} onClick={() => performUpload("direct", { url: uploadUrlInput })}>
+                        <button
+                          type="button"
+                          className={`${uploadImageAddMode === "direct" ? "admin-primary" : "admin-secondary"} admin-inline`}
+                          disabled={uploadBusy}
+                          onClick={() => setUploadImageAddMode("direct")}
+                        >
                           使用外链
                         </button>
-                        <button type="button" className="admin-primary admin-inline" disabled={uploadBusy || !uploadUrlInput.trim()} onClick={() => performUpload("fetch", { url: uploadUrlInput })}>
+                        <button
+                          type="button"
+                          className={`${uploadImageAddMode === "fetch" ? "admin-primary" : "admin-secondary"} admin-inline`}
+                          disabled={uploadBusy}
+                          onClick={() => setUploadImageAddMode("fetch")}
+                        >
                           外链转存
                         </button>
                       </div>
@@ -1512,6 +1573,7 @@ export default function AdminApp() {
                             const file = imageItem?.getAsFile() || null;
                             if (!file) return;
                             event.preventDefault();
+                            setUploadImageAddMode("local");
                             await performUpload("data", { file });
                           }}
                         >
