@@ -1,8 +1,6 @@
 import type { Category, GalleryItem, GalleryStats } from "./types";
 
-export const CATEGORIES: Category[] = ["全部", "海报", "城市", "人物", "插画", "国风"];
-
-const CATEGORY_KEYWORDS: Record<Exclude<Category, "全部">, string[]> = {
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
   海报: ["海报", "poster", "宣传", "主视觉", "封面", "排版"],
   城市: ["城市", "杭州", "上海", "深圳", "北京", "广州", "重庆", "南京", "city", "urban"],
   人物: ["人物", "人像", "portrait", "少女", "女生", "女性", "idol", "woman", "girl", "男", "女"],
