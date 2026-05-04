@@ -1583,9 +1583,9 @@ export default function AdminApp() {
                     </div>
                   </div>
 
-                  <label className="admin-field admin-span-2 required">
+                  <label className="admin-field admin-span-2">
                     <span>标题 title</span>
-                    <input required value={editorState.title} onChange={(event) => setEditorState((s) => ({ ...s, title: event.target.value }))} />
+                    <input value={editorState.title} onChange={(event) => setEditorState((s) => ({ ...s, title: event.target.value }))} />
                   </label>
 
                   <label className="admin-field admin-span-2 required">

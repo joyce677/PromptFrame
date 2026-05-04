@@ -218,9 +218,9 @@ export function matchesCategory(item: GalleryItem, category: Category) {
   return getOriginalTags(item).includes(category);
 }
 
-export function getDisplayTitle(item: GalleryItem) {
-  const prompt = (item.prompt || "").replace(/\s+/g, " ").trim();
-  if (!prompt || prompt === "未提供") return item.title || `第${item.post_number}层作品`;
+function titleFromPrompt(promptRaw: string, limit = 15) {
+  const prompt = String(promptRaw || "").replace(/\s+/g, " ").trim();
+  if (!prompt || prompt === "未提供") return "";
 
   const cleaned = prompt
     .replace(/^生成一张/, "")
@@ -230,7 +230,28 @@ export function getDisplayTitle(item: GalleryItem) {
     .replace(/^一张/, "")
     .trim();
 
-  return truncateText(cleaned, 18);
+  const base = cleaned || prompt;
+  const hasCjk = /[\u3400-\u9FFF]/.test(base);
+
+  if (hasCjk) {
+    const compact = base.replace(/\s+/g, "");
+    if (compact.length <= limit) return compact;
+    return `${compact.slice(0, limit).trim()}...`;
+  }
+
+  const words = base.split(/\s+/g).filter(Boolean);
+  if (words.length <= limit) return base;
+  return `${words.slice(0, limit).join(" ").trim()}...`;
+}
+
+export function getDisplayTitle(item: GalleryItem) {
+  const title = String(item.title || "").replace(/\s+/g, " ").trim();
+  if (title) return title;
+
+  const fromPrompt = titleFromPrompt(item.prompt, 15);
+  if (fromPrompt) return fromPrompt;
+
+  return `第${item.post_number}层作品`;
 }
 
 export function getPromptPreview(item: GalleryItem, maxLength = 76) {

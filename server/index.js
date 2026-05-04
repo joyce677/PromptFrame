@@ -299,7 +299,7 @@ function normalizeImportedItems(value) {
       post_url: String(entry.post_url || ""),
       image_url: imageUrl,
       thumb_url: String(entry.thumb_url || imageUrl),
-      title: String(entry.title || `第${postNumber}层-图${Number.isFinite(imageIndex) ? imageIndex : 1}`),
+      title: String(entry.title ?? "").trim(),
       info: String(entry.info || ""),
       prompt: String(entry.prompt || "未提供"),
       image_index: Number.isFinite(imageIndex) ? imageIndex : 1,
@@ -698,7 +698,7 @@ function normalizeBackupPayload(payload) {
       itemInvalid += 1;
       continue;
     }
-    if (!username || !imageUrl || !title || !promptRaw.trim()) {
+    if (!username || !imageUrl || !promptRaw.trim()) {
       itemInvalid += 1;
       continue;
     }
@@ -1274,7 +1274,6 @@ function normalizeAdminItemInput(value) {
   if (!Number.isFinite(postNumber) || postNumber <= 0) return { ok: false, error: "post_number 必须是正数" };
   if (!Number.isFinite(imageIndex) || imageIndex <= 0) return { ok: false, error: "image_index 必须是正数" };
   if (!imageUrl) return { ok: false, error: "image_url 不能为空" };
-  if (!title) return { ok: false, error: "title 不能为空" };
   if (!promptRaw.trim()) return { ok: false, error: "prompt 不能为空" };
 
   const recommended = Boolean(source.recommended);
