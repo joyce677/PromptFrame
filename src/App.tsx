@@ -130,7 +130,7 @@ function normalizeImportedItems(value: unknown): { items: GalleryItem[]; invalid
       post_url: String(record.post_url || ""),
       image_url: imageUrl,
       thumb_url: String(record.thumb_url || imageUrl),
-      title: String(record.title || `第${postNumber}层-图${imageIndex}`),
+      title: String(record.title ?? "").trim(),
       info: String(record.info || ""),
       prompt: String(record.prompt || "未提供"),
       image_index: Number.isFinite(imageIndex) ? imageIndex : 1,

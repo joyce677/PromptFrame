@@ -246,11 +246,13 @@ function titleFromPrompt(promptRaw: string, limit = 15) {
 
 export function getDisplayTitle(item: GalleryItem) {
   const title = String(item.title || "").replace(/\s+/g, " ").trim();
-  if (title) return title;
+  const looksAutoTitle = /^第\d+层-图\d+$/.test(title);
+  if (title && !looksAutoTitle) return title;
 
   const fromPrompt = titleFromPrompt(item.prompt, 15);
   if (fromPrompt) return fromPrompt;
 
+  if (title) return title;
   return `第${item.post_number}层作品`;
 }
 
