@@ -4,6 +4,7 @@ import {
   Download,
   LayoutGrid,
   LogOut,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
@@ -12,6 +13,7 @@ import {
   Shield,
   Sparkles,
   Star,
+  Sun,
   Tag,
   Trash2,
   Upload,
@@ -887,6 +889,7 @@ export default function AdminApp() {
               登录
             </button>
             <button className="admin-secondary" type="button" onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}>
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
               切换主题
             </button>
           </form>
@@ -913,6 +916,7 @@ export default function AdminApp() {
 
             <div className="admin-actions">
               <button className="admin-action ghost-button" type="button" onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}>
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
                 切换主题
               </button>
               <button className="admin-action ghost-button" type="button" onClick={logout}>
@@ -1641,6 +1645,31 @@ export default function AdminApp() {
             </section>
           ) : null}
         </main>
+
+        <nav className="admin-mobile-nav" aria-label="管理菜单">
+          <div className="admin-mobile-nav-inner">
+            <button type="button" className={activePage === "items" ? "active" : ""} onClick={() => navigateTo("items")} aria-label="作品管理">
+              <LayoutGrid size={18} />
+              <span>作品</span>
+            </button>
+            <button type="button" className={activePage === "create" ? "active" : ""} onClick={() => navigateTo("create")} aria-label="新增作品">
+              <Plus size={18} />
+              <span>新增</span>
+            </button>
+            <button type="button" className={activePage === "categories" ? "active" : ""} onClick={() => navigateTo("categories")} aria-label="标签管理">
+              <Tag size={18} />
+              <span>标签</span>
+            </button>
+            <button type="button" className={activePage === "channels" ? "active" : ""} onClick={() => navigateTo("channels")} aria-label="上传渠道">
+              <Upload size={18} />
+              <span>上传</span>
+            </button>
+            <button type="button" className={activePage === "backup" ? "active" : ""} onClick={() => navigateTo("backup")} aria-label="备份与恢复">
+              <Shield size={18} />
+              <span>备份</span>
+            </button>
+          </div>
+        </nav>
 
         <div className={`toast ${toast ? "toast-show" : ""}`} role="status" aria-live="polite">
           {toast}

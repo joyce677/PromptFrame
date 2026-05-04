@@ -4321,6 +4321,66 @@ main {
   z-index: 60;
 }
 
+.admin-mobile-nav {
+  display: none;
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 70;
+}
+
+.admin-mobile-nav-inner {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  border: 1px solid rgba(226, 234, 247, 0.9);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 60px rgba(33, 48, 79, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.admin-mobile-nav-inner button {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 1px solid rgba(226, 234, 247, 0.9);
+  border-radius: 16px;
+  background: rgba(248, 250, 255, 0.9);
+  color: #2b3952;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-mobile-nav-inner button svg {
+  flex: 0 0 auto;
+}
+
+.admin-mobile-nav-inner button.active {
+  border-color: rgba(31, 99, 255, 0.24);
+  background: rgba(31, 99, 255, 0.12);
+  color: #0f57e8;
+}
+
+.app-shell[data-theme="dark"] .admin-mobile-nav-inner,
+.app-shell[data-theme="dark"] .admin-mobile-nav-inner button {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(23, 32, 49, 0.86);
+  color: #edf4ff;
+  box-shadow: var(--soft-shadow);
+}
+
+.app-shell[data-theme="dark"] .admin-mobile-nav-inner button.active {
+  border-color: rgba(122, 162, 255, 0.36);
+  background: rgba(122, 162, 255, 0.18);
+  color: #cfe0ff;
+}
+
 .admin-float-nav-inner {
   display: grid;
   gap: 10px;
@@ -4393,6 +4453,14 @@ main {
 
   .admin-float-nav {
     display: none;
+  }
+
+  .admin-mobile-nav {
+    display: block;
+  }
+
+  .admin-main {
+    padding-bottom: calc(48px + 96px + env(safe-area-inset-bottom));
   }
 }
 
@@ -4831,6 +4899,19 @@ main {
   background: rgba(248, 250, 255, 0.7);
 }
 
+.admin-upload-row input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 12px;
+  border: 1px solid #dfe7f3;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1f293d;
+  font-size: 14px;
+  font-weight: 800;
+  outline: none;
+}
+
 .admin-upload-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -4908,6 +4989,32 @@ main {
   box-shadow: var(--soft-shadow);
 }
 
+.app-shell[data-theme="dark"] .admin-toggle {
+  color: #edf4ff;
+}
+
+.app-shell[data-theme="dark"] .admin-editor-flags {
+  border-bottom-color: rgba(148, 163, 184, 0.2);
+}
+
+.app-shell[data-theme="dark"] .admin-upload-box {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.app-shell[data-theme="dark"] .admin-upload-row input {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(23, 32, 49, 0.86);
+  color: #edf4ff;
+  box-shadow: var(--soft-shadow);
+}
+
+.app-shell[data-theme="dark"] .admin-upload-dropzone {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(23, 32, 49, 0.86);
+  color: rgba(237, 244, 255, 0.82);
+}
+
 .app-shell[data-theme="dark"] .admin-topbar {
   border-bottom-color: rgba(148, 163, 184, 0.16);
   background: rgba(12, 18, 32, 0.72);
@@ -4966,9 +5073,10 @@ main {
 
 @media (max-width: 640px) {
   .admin-topbar-inner {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
     padding: 18px 0 14px;
   }
 
