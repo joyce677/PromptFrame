@@ -5037,6 +5037,10 @@ main {
   color: #9fb1d3;
 }
 
+.app-shell[data-theme="dark"] .admin-select-all {
+  color: #edf4ff;
+}
+
 .app-shell[data-theme="dark"] .admin-search {
   border-color: rgba(148, 163, 184, 0.2);
   background: rgba(15, 23, 42, 0.7);
@@ -5056,6 +5060,35 @@ main {
   border-top-color: rgba(148, 163, 184, 0.16);
   border-bottom-color: rgba(148, 163, 184, 0.16);
   background: rgba(15, 23, 42, 0.6);
+}
+
+.app-shell[data-theme="dark"] .admin-empty {
+  background: rgba(15, 23, 42, 0.55);
+  color: #edf4ff;
+}
+
+.app-shell[data-theme="dark"] .admin-empty .muted {
+  color: #9fb1d3;
+}
+
+.app-shell[data-theme="dark"] .admin-item-thumb {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.app-shell[data-theme="dark"] .admin-item-check {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(23, 32, 49, 0.72);
+}
+
+.app-shell[data-theme="dark"] .admin-item-tags span {
+  background: rgba(122, 162, 255, 0.18);
+  color: #cfe0ff;
+}
+
+.app-shell[data-theme="dark"] .admin-pin {
+  border-color: rgba(122, 162, 255, 0.28);
+  background: rgba(122, 162, 255, 0.18);
+  color: #cfe0ff;
 }
 
 @media (max-width: 900px) {
