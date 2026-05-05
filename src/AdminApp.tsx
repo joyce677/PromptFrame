@@ -493,6 +493,20 @@ export default function AdminApp() {
     });
   }, [items, searchTerm]);
 
+  const configuredTagNames = useMemo(() => {
+    return categories
+      .slice()
+      .sort((a, b) => {
+        const orderDelta = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        if (orderDelta) return orderDelta;
+        return a.name.localeCompare(b.name, "zh-Hans-CN");
+      })
+      .map((category) => category.name)
+      .filter(Boolean);
+  }, [categories]);
+
+  const currentOriginalTags = useMemo(() => normalizeTagsText(editorState.original_tags), [editorState.original_tags]);
+
   const selectedCount = selectedIds.size;
   const allVisibleSelected = filteredItems.length && filteredItems.every((item) => item.id && selectedIds.has(item.id));
 
@@ -568,6 +582,16 @@ export default function AdminApp() {
   function openEdit(item: GalleryItem) {
     setEditorState(itemToEditorState(item));
     setActivePage("create");
+  }
+
+  function toggleOriginalTag(tag: string) {
+    const normalized = tag.trim();
+    if (!normalized) return;
+    setEditorState((state) => {
+      const current = normalizeTagsText(state.original_tags);
+      const next = current.includes(normalized) ? current.filter((value) => value !== normalized) : [...current, normalized];
+      return { ...state, original_tags: next.join(", ") };
+    });
   }
 
   async function saveEditor() {
@@ -1604,6 +1628,20 @@ export default function AdminApp() {
                   <label className="admin-field admin-span-2">
                     <span>原始标签 original_tags（逗号分隔）</span>
                     <input value={editorState.original_tags} onChange={(event) => setEditorState((s) => ({ ...s, original_tags: event.target.value }))} />
+                    {configuredTagNames.length ? (
+                      <div className="admin-tag-quick" role="group" aria-label="已配置标签快捷选择">
+                        {configuredTagNames.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`admin-tag-chip ${currentOriginalTags.includes(tag) ? "active" : ""}`}
+                            onClick={() => toggleOriginalTag(tag)}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </label>
 
                   <label className="admin-field">
