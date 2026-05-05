@@ -611,7 +611,7 @@ export default function AdminApp() {
         const createdItem = created.item;
         if (createdItem) setItems((current) => [createdItem, ...current]);
         setToast("已新增作品");
-        openCreate();
+        openCreate(createdItem ? [createdItem, ...items] : items);
       }
     } catch (err) {
       setToast(err instanceof Error ? err.message : "保存失败");
