@@ -1620,20 +1620,27 @@ function DetailModal({
   const [imageSize, setImageSize] = useState("读取中");
   const [newTag, setNewTag] = useState("");
   const [relatedDrawerOpen, setRelatedDrawerOpen] = useState(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!item) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      if (imagePreviewOpen) {
+        setImagePreviewOpen(false);
+        return;
+      }
+      onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [item, onClose]);
+  }, [imagePreviewOpen, item, onClose]);
 
   useEffect(() => {
     setImageSize("读取中");
     setNewTag("");
     setRelatedDrawerOpen(false);
+    setImagePreviewOpen(false);
   }, [item]);
 
   if (!item) return null;
@@ -1679,14 +1686,16 @@ function DetailModal({
                 <ChevronLeft size={24} />
               </button>
             ) : null}
-            <img
-              src={item.image_url}
-              alt={getDisplayTitle(item)}
-              onLoad={(event) => {
-                const image = event.currentTarget;
-                setImageSize(`${image.naturalWidth}×${image.naturalHeight}`);
-              }}
-            />
+            <button className="detail-image-click" type="button" onClick={() => setImagePreviewOpen(true)} aria-label="查看完整图片">
+              <img
+                src={item.image_url}
+                alt={getDisplayTitle(item)}
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  setImageSize(`${image.naturalWidth}×${image.naturalHeight}`);
+                }}
+              />
+            </button>
             {nextItem ? (
               <button className="image-nav next" type="button" onClick={() => onSelect(nextItem)} aria-label="下一张">
                 <ChevronRight size={24} />
@@ -1784,7 +1793,7 @@ function DetailModal({
               ) : null}
               <a href={item.image_url} target="_blank" rel="noopener noreferrer">
                 <ImageIcon size={18} />
-                打开原图
+                下载原图
               </a>
             </div>
           </section>
@@ -1860,6 +1869,27 @@ function DetailModal({
           open={relatedDrawerOpen}
           relatedItems={relatedResults}
         />
+
+        {imagePreviewOpen ? (
+          <div className="image-preview-backdrop" role="presentation" onClick={() => setImagePreviewOpen(false)}>
+            <section
+              className="image-preview-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="图片预览"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="image-preview-topbar">
+                <button type="button" onClick={() => setImagePreviewOpen(false)} aria-label="关闭图片预览">
+                  <X size={26} />
+                </button>
+              </div>
+              <div className="image-preview-stage">
+                <img src={item.image_url} alt={getDisplayTitle(item)} />
+              </div>
+            </section>
+          </div>
+        ) : null}
       </section>
     </div>
   );
