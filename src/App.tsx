@@ -580,7 +580,7 @@ function Header({
         <a className="brand" href="/" aria-label="返回首页">
           <span className="brand-mark">D</span>
           <span>
-            <strong>PromptFrame · GPT Image 2 画廊</strong>
+            <strong>GPT Image 2 画廊</strong>
             <small>作品浏览 · Prompt 学习 · 检索归档</small>
           </span>
         </a>
