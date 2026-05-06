@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock3,
   Copy,
   ExternalLink,
@@ -62,6 +63,7 @@ const FAVORITES_KEY = "linux-do-gallery:favorites";
 const RECENT_SEARCHES_KEY = "linux-do-gallery:recent-searches";
 const THEME_KEY = "linux-do-gallery:theme";
 const USER_TAGS_KEY = "linux-do-gallery:user-tags";
+const MOBILE_BREAKPOINT_QUERY = "(max-width: 640px)";
 
 function readStored<T>(key: string, fallback: T): T {
   try {
@@ -190,10 +192,19 @@ export default function App() {
   const [compactSearchVisible, setCompactSearchVisible] = useState(false);
   const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
   const [favoriteDrawerOpen, setFavoriteDrawerOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [mobileCategoryExpanded, setMobileCategoryExpanded] = useState(false);
+  const [mobileSearchDraft, setMobileSearchDraft] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchPanelRef = useRef<HTMLDivElement>(null);
   const lastScrollYRef = useRef(0);
   const favoriteEntryScrollYRef = useRef(0);
+  const scrollGestureAnchorYRef = useRef(0);
+  const scrollDirectionRef = useRef<-1 | 0 | 1>(0);
+
+  function isMobileViewport() {
+    return typeof window !== "undefined" && window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -222,14 +233,35 @@ export default function App() {
 
   useEffect(() => {
     function onScroll() {
-      const y = window.scrollY;
+      const y = Math.max(window.scrollY, 0);
       const delta = y - lastScrollYRef.current;
       const searchBottom = searchPanelRef.current?.getBoundingClientRect().bottom ?? 9999;
+      const mobileViewport = isMobileViewport();
 
       setCompactSearchVisible(searchBottom < 88);
 
-      if (activeItem || headerSearchOpen) {
+      if (activeItem || headerSearchOpen || mobileSearchOpen || mobileCategoryExpanded) {
         setHeaderHidden(false);
+        scrollGestureAnchorYRef.current = y;
+        scrollDirectionRef.current = 0;
+      } else if (mobileViewport) {
+        const direction = delta > 1 ? 1 : delta < -1 ? -1 : 0;
+        if (direction !== 0 && direction !== scrollDirectionRef.current) {
+          scrollDirectionRef.current = direction;
+          scrollGestureAnchorYRef.current = lastScrollYRef.current;
+        }
+
+        const traveled = Math.abs(y - scrollGestureAnchorYRef.current);
+
+        if (!headerHidden && y > 160 && scrollDirectionRef.current === 1 && traveled >= 72) {
+          setHeaderHidden(true);
+          scrollGestureAnchorYRef.current = y;
+          scrollDirectionRef.current = 0;
+        } else if (headerHidden && (y <= 24 || (scrollDirectionRef.current === -1 && traveled >= 42))) {
+          setHeaderHidden(false);
+          scrollGestureAnchorYRef.current = y;
+          scrollDirectionRef.current = 0;
+        }
       } else if (y > 120 && delta > 8) {
         setHeaderHidden(true);
       } else if (delta < -8 || y <= 24) {
@@ -246,7 +278,7 @@ export default function App() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [activeItem, headerSearchOpen]);
+  }, [activeItem, headerHidden, headerSearchOpen, mobileCategoryExpanded, mobileSearchOpen]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -261,11 +293,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = activeItem || favoriteDrawerOpen ? "hidden" : "";
+    document.body.style.overflow =
+      activeItem || favoriteDrawerOpen || mobileSearchOpen || mobileCategoryExpanded ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [activeItem, favoriteDrawerOpen]);
+  }, [activeItem, favoriteDrawerOpen, mobileCategoryExpanded, mobileSearchOpen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (!event.matches) {
+        setMobileSearchOpen(false);
+        setMobileCategoryExpanded(false);
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -302,15 +349,41 @@ export default function App() {
     });
   }, [category, favorites, items, searchTerm, showFavoritesOnly, sortMode, userTagsByItem]);
 
-  function saveCurrentSearch() {
-    const query = searchTerm.trim();
-    if (!query) {
-      setToast("请输入搜索关键词");
-      return;
+  const mobileFilteredItems = useMemo(() => {
+    const query = mobileSearchDraft.trim().toLowerCase();
+    const filtered = items.filter((item) => {
+      if (!query) return true;
+      return itemSearchText(item, userTagsByItem[itemKey(item)] || item.user_tags || []).includes(query);
+    });
+
+    return filtered.sort((a, b) => {
+      const pinnedDelta = Number(Boolean(b.pinned)) - Number(Boolean(a.pinned));
+      if (pinnedDelta) return pinnedDelta;
+      const recommendedDelta = Number(Boolean(b.recommended)) - Number(Boolean(a.recommended));
+      if (recommendedDelta) return recommendedDelta;
+      const postDelta = sortMode === "newest" ? b.post_number - a.post_number : a.post_number - b.post_number;
+      return postDelta || a.image_index - b.image_index;
+    });
+  }, [items, mobileSearchDraft, sortMode, userTagsByItem]);
+
+  function rememberSearch(query: string) {
+    setRecentSearches((current) => [query, ...current.filter((item) => item !== query)].slice(0, 6));
+  }
+
+  function saveSearchQuery(query: string, showToast = true) {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      if (showToast) setToast("请输入搜索关键词");
+      return false;
     }
 
-    setRecentSearches((current) => [query, ...current.filter((item) => item !== query)].slice(0, 6));
-    setToast("已保存当前搜索");
+    rememberSearch(normalizedQuery);
+    if (showToast) setToast("已保存当前搜索");
+    return true;
+  }
+
+  function saveCurrentSearch() {
+    saveSearchQuery(searchTerm);
   }
 
   function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -318,9 +391,19 @@ export default function App() {
   }
 
   function commitHeaderSearch() {
-    const query = searchTerm.trim();
-    if (query) setRecentSearches((current) => [query, ...current.filter((item) => item !== query)].slice(0, 6));
+    saveSearchQuery(searchTerm, false);
     setHeaderSearchOpen(false);
+  }
+
+  function openSearchExperience() {
+    setHeaderHidden(false);
+    setMobileCategoryExpanded(false);
+    if (isMobileViewport()) {
+      setMobileSearchDraft(searchTerm);
+      setMobileSearchOpen(true);
+      return;
+    }
+    setHeaderSearchOpen(true);
   }
 
   function toggleFavorite(item: GalleryItem) {
@@ -415,17 +498,20 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell" data-theme={theme}>
+    <div
+      className="app-shell"
+      data-theme={theme}
+      data-mobile-header-hidden={headerHidden ? "true" : "false"}
+    >
       <Header
         onRandom={openRandomItem}
+        onShowFavorites={showFavoriteResults}
+        showFavoritesOnly={showFavoritesOnly}
         compactSearchVisible={compactSearchVisible}
         headerHidden={headerHidden}
         headerSearchOpen={headerSearchOpen}
         onSearchSubmit={commitHeaderSearch}
-        onActivateHeaderSearch={() => {
-          setHeaderHidden(false);
-          setHeaderSearchOpen(true);
-        }}
+        onActivateHeaderSearch={openSearchExperience}
         onCloseHeaderSearch={() => setHeaderSearchOpen(false)}
         onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
         searchTerm={searchTerm}
@@ -448,6 +534,9 @@ export default function App() {
           <FilterBar
             category={category}
             categories={categories}
+            expanded={mobileCategoryExpanded}
+            filteredCount={filteredItems.length}
+            onExpandedChange={setMobileCategoryExpanded}
             setCategory={setCategory}
             setSortMode={setSortMode}
             setViewMode={setViewMode}
@@ -472,7 +561,6 @@ export default function App() {
 
           <Sidebar
             category={category}
-            categories={categories}
             favoriteItems={favoriteItems}
             onClearRecent={() => setRecentSearches([])}
             onOpenFavorite={openFavoriteItem}
@@ -521,6 +609,31 @@ export default function App() {
         totalFavorites={favorites.length}
       />
 
+      <MobileSearchPage
+        error={error}
+        favoriteKeys={favorites}
+        items={mobileFilteredItems}
+        loading={loading}
+        onClose={() => {
+          setMobileSearchDraft("");
+          setMobileSearchOpen(false);
+        }}
+        onCopy={copyPrompt}
+        onOpen={(item) => {
+          setMobileSearchDraft("");
+          setMobileSearchOpen(false);
+          setActiveItem(item);
+        }}
+        onPickRecent={setMobileSearchDraft}
+        onSaveSearch={() => saveSearchQuery(mobileSearchDraft)}
+        onToggleFavorite={toggleFavorite}
+        open={mobileSearchOpen}
+        recentSearches={recentSearches}
+        searchTerm={mobileSearchDraft}
+        setSearchTerm={setMobileSearchDraft}
+        userTagsByItem={userTagsByItem}
+      />
+
       <DetailModal
         allItems={items}
         favorite={activeFavorite}
@@ -548,6 +661,8 @@ function Header({
   headerHidden,
   headerSearchOpen,
   onRandom,
+  onShowFavorites,
+  showFavoritesOnly,
   onSearchSubmit,
   onActivateHeaderSearch,
   onCloseHeaderSearch,
@@ -560,6 +675,8 @@ function Header({
   headerHidden: boolean;
   headerSearchOpen: boolean;
   onRandom: () => void;
+  onShowFavorites: () => void;
+  showFavoritesOnly: boolean;
   onSearchSubmit: () => void;
   onActivateHeaderSearch: () => void;
   onCloseHeaderSearch: () => void;
@@ -577,6 +694,16 @@ function Header({
   return (
     <header className={`topbar ${headerHidden ? "topbar-hidden" : ""}`}>
       <div className="topbar-inner">
+        <button
+          className="circle-button xhs-mobile-theme"
+          type="button"
+          onClick={onToggleTheme}
+          aria-label={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
+          title={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
+        >
+          {theme === "dark" ? <SunMedium size={20} /> : <Moon size={20} />}
+        </button>
+
         <a className="brand" href="/" aria-label="返回首页">
           <span className="brand-mark">D</span>
           <span>
@@ -585,7 +712,42 @@ function Header({
           </span>
         </a>
 
+        {/* Mobile Xiaohongshu style tabs */}
+        <div className="xhs-mobile-tabs">
+          <button 
+            type="button" 
+            className={`xhs-tab ${showFavoritesOnly ? "active" : ""}`}
+            onClick={onShowFavorites}
+          >
+            收藏
+          </button>
+          <button 
+            type="button" 
+            className={`xhs-tab ${!showFavoritesOnly ? "active" : ""}`}
+            onClick={() => {
+              if (showFavoritesOnly) onShowFavorites();
+            }}
+          >
+            发现
+          </button>
+          <button 
+            type="button" 
+            className="xhs-tab"
+            onClick={onRandom}
+          >
+            随机
+          </button>
+        </div>
+
         <nav className="top-actions" aria-label="顶部操作">
+          <button
+            className="circle-button xhs-mobile-search"
+            type="button"
+            onClick={onActivateHeaderSearch}
+            aria-label="搜索"
+          >
+            <Search size={22} />
+          </button>
           {compactSearchVisible ? (
             <div className="header-search-wrap">
               <button
@@ -717,6 +879,9 @@ function HeroSearch({
 function FilterBar({
   category,
   categories,
+  expanded,
+  filteredCount,
+  onExpandedChange,
   setCategory,
   setSortMode,
   setViewMode,
@@ -725,6 +890,9 @@ function FilterBar({
 }: {
   category: Category;
   categories: Category[];
+  expanded: boolean;
+  filteredCount: number;
+  onExpandedChange: (expanded: boolean) => void;
   setCategory: (category: Category) => void;
   setSortMode: (sortMode: SortMode) => void;
   setViewMode: (viewMode: ViewMode) => void;
@@ -743,21 +911,50 @@ function FilterBar({
 
   return (
     <div className="filter-row">
-      <div className="category-tabs" aria-label="分类筛选">
-        {categories.map((item) => {
-          const Icon = getCategoryIcon(item);
-          return (
-            <button
-              className={item === category ? "active" : ""}
-              key={item}
-              type="button"
-              onClick={() => setCategory(item === "全部" || category !== item ? item : "全部")}
-            >
-              <Icon className="mobile-category-icon" size={18} />
-              {item}
+      <div className={`category-tabs-wrapper ${expanded ? "expanded" : ""}`}>
+        {expanded && (
+          <div className="category-expanded-header">
+            <div className="title-row">
+              <strong>我的频道</strong>
+            </div>
+            <button className="collapse-btn" type="button" onClick={() => onExpandedChange(false)} aria-label="收起分类">
+              <ChevronUp size={20} />
             </button>
-          );
-        })}
+          </div>
+        )}
+        <div className="category-tabs" aria-label="分类筛选">
+          {categories.map((item) => {
+            const Icon = getCategoryIcon(item);
+            return (
+              <button
+                className={item === category ? "active" : ""}
+                key={item}
+                type="button"
+                onClick={() => {
+                  setCategory(item === "全部" || category !== item ? item : "全部");
+                  onExpandedChange(false);
+                }}
+              >
+                <Icon className="mobile-category-icon" size={18} />
+                {item}
+              </button>
+            );
+          })}
+        </div>
+        {!expanded && (
+          <button
+            className="category-expand-btn"
+            type="button"
+            onClick={() => onExpandedChange(!expanded)}
+            aria-label="展开全部分类"
+          >
+            <ChevronRight className={`expand-icon ${expanded ? "open" : ""}`} size={20} />
+          </button>
+        )}
+      </div>
+
+      <div className="mobile-match-row" aria-hidden="true">
+        当前匹配 {filteredCount} 张作品
       </div>
 
       <div className="view-tools">
@@ -785,6 +982,124 @@ function FilterBar({
           >
             <List size={18} />
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileSearchPage({
+  error,
+  favoriteKeys,
+  items,
+  loading,
+  onClose,
+  onCopy,
+  onOpen,
+  onPickRecent,
+  onSaveSearch,
+  onToggleFavorite,
+  open,
+  recentSearches,
+  searchTerm,
+  setSearchTerm,
+  userTagsByItem,
+}: {
+  error: string;
+  favoriteKeys: string[];
+  items: GalleryItem[];
+  loading: boolean;
+  onClose: () => void;
+  onCopy: (item: GalleryItem) => void;
+  onOpen: (item: GalleryItem) => void;
+  onPickRecent: (query: string) => void;
+  onSaveSearch: () => void;
+  onToggleFavorite: (item: GalleryItem) => void;
+  open: boolean;
+  recentSearches: string[];
+  searchTerm: string;
+  setSearchTerm: (value: string) => void;
+  userTagsByItem: Record<string, string[]>;
+}) {
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    mobileSearchInputRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, open]);
+
+  return (
+    <div className={`mobile-search-page ${open ? "open" : ""}`} aria-hidden={!open}>
+      <div className="mobile-search-shell">
+        <div className="mobile-search-header">
+          <button type="button" onClick={onClose} aria-label="关闭搜索页面">
+            <ChevronLeft size={22} />
+          </button>
+          <div className="mobile-search-input">
+            <Search size={18} />
+            <input
+              ref={mobileSearchInputRef}
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="搜索作品、作者、Prompt 关键词"
+            />
+            {searchTerm ? (
+              <button type="button" onClick={() => setSearchTerm("")} aria-label="清空搜索">
+                <X size={16} />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mobile-search-body">
+          <div className="mobile-search-meta">
+            <strong>{searchTerm.trim() ? `找到 ${items.length} 张相关作品` : "输入关键词搜索作品"}</strong>
+            <button type="button" onClick={onSaveSearch}>
+              <Save size={15} />
+              保存搜索
+            </button>
+          </div>
+
+          {recentSearches.length ? (
+            <div className="mobile-search-recent">
+              <span>最近搜索</span>
+              <div className="mobile-search-chip-row">
+                {recentSearches.map((query) => (
+                  <button
+                    key={query}
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm(query);
+                      onPickRecent(query);
+                    }}
+                  >
+                    {query}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <GalleryGrid
+            error={error}
+            favoriteKeys={favoriteKeys}
+            items={items}
+            loading={loading}
+            onCopy={onCopy}
+            onOpen={onOpen}
+            onToggleFavorite={onToggleFavorite}
+            userTagsByItem={userTagsByItem}
+            viewMode="list"
+          />
         </div>
       </div>
     </div>
@@ -989,10 +1304,13 @@ function GalleryCard({
         <div>
           <h3>{getDisplayTitle(item)}</h3>
           <div className="card-meta">
-            <span>
+            <span className="card-meta-floor">
               #{item.post_number} · 图{item.image_index}
             </span>
-            <span>@{item.username}</span>
+            <span className="card-meta-author">
+              <span className="author-avatar">{item.username.charAt(0).toUpperCase()}</span>
+              {item.username}
+            </span>
           </div>
           <p>{getPromptPreview(item)}</p>
         </div>
@@ -1026,7 +1344,6 @@ function GalleryCard({
 
 function Sidebar({
   category,
-  categories,
   favoriteItems,
   onClearRecent,
   onOpenFavorite,
@@ -1040,7 +1357,6 @@ function Sidebar({
   totalFavorites,
 }: {
   category: Category;
-  categories: Category[];
   favoriteItems: GalleryItem[];
   onClearRecent: () => void;
   onOpenFavorite: (item: GalleryItem) => void;
