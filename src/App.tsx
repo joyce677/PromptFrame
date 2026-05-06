@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ChevronUp,
   Clock3,
   Copy,
@@ -46,6 +47,7 @@ import {
   matchesCategory,
   rankRelatedItems,
   topTags,
+  truncateText,
 } from "./utils";
 import type { RelatedGalleryItem } from "./utils";
 
@@ -1621,6 +1623,7 @@ function DetailModal({
   const [newTag, setNewTag] = useState("");
   const [relatedDrawerOpen, setRelatedDrawerOpen] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [promptExpanded, setPromptExpanded] = useState(false);
 
   useEffect(() => {
     if (!item) return;
@@ -1641,6 +1644,7 @@ function DetailModal({
     setNewTag("");
     setRelatedDrawerOpen(false);
     setImagePreviewOpen(false);
+    setPromptExpanded(false);
   }, [item]);
 
   if (!item) return null;
@@ -1656,6 +1660,9 @@ function DetailModal({
   const hasPostUrl = Boolean(item.post_url && String(item.post_url).trim());
   const displayUsername = String(item.username || "").trim();
   const hasAuthor = Boolean(displayUsername && displayUsername.toLowerCase() !== "unknown");
+  const promptText = String(item.prompt || "未提供");
+  const promptCanExpand = promptText.length > 150;
+  const visiblePrompt = promptExpanded || !promptCanExpand ? promptText : truncateText(promptText, 150);
 
   function selectRelatedItem(nextRelatedItem: GalleryItem) {
     setRelatedDrawerOpen(false);
@@ -1778,8 +1785,19 @@ function DetailModal({
               <Copy size={18} />
               <span className="desktop-prompt-title">Prompt / Metadata</span>
               <span className="mobile-prompt-title">Prompt / 提示词</span>
+              {promptCanExpand ? (
+                <button
+                  type="button"
+                  className="prompt-toggle"
+                  onClick={() => setPromptExpanded((current) => !current)}
+                  aria-label={promptExpanded ? "收起提示词" : "展开提示词"}
+                >
+                  {promptExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  {promptExpanded ? "收起" : "展开"}
+                </button>
+              ) : null}
             </h3>
-            <div className="detail-prompt-scroll">{item.prompt || "未提供"}</div>
+            <div className={`detail-prompt-scroll ${promptExpanded ? "expanded" : ""}`}>{visiblePrompt}</div>
             <div className="modal-actions detail-actions">
               <button type="button" className="primary-action" onClick={() => onCopy(item)}>
                 <Copy size={18} />

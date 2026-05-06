@@ -2439,15 +2439,28 @@ main {
   font-weight: 900;
 }
 
+.prompt-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .prompt-detail {
   margin-bottom: 14px;
 }
 
 .detail-prompt-scroll {
-  max-height: clamp(92px, 15vh, 128px);
   margin: 0 16px 12px;
   padding: 13px 14px;
-  overflow: auto;
+  overflow: visible;
   border: 1px solid #e5ebf6;
   border-radius: 12px;
   background: #fbfdff;
@@ -4546,13 +4559,6 @@ main {
   }
 
   .detail-metrics {
-    order: 3;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 0;
-  }
-
-  .detail-metrics .metric-card:nth-child(4) {
     display: none;
   }
 
@@ -4600,9 +4606,9 @@ main {
   }
 
   .detail-prompt-scroll {
-    max-height: 210px;
     margin: 0 14px 14px;
     padding: 0;
+    overflow: visible;
     border: 0;
     background: transparent;
     color: #111827;
