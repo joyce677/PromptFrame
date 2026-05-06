@@ -313,6 +313,14 @@ img {
 }
 
 @media (min-width: 641px) {
+  body {
+    background: #ffffff;
+  }
+
+  .app-shell {
+    background: #ffffff;
+  }
+
   .xhs-mobile-tabs,
   .xhs-mobile-search,
   .xhs-mobile-theme {
