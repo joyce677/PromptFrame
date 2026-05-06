@@ -502,6 +502,7 @@ export default function App() {
       className="app-shell"
       data-theme={theme}
       data-mobile-header-hidden={headerHidden ? "true" : "false"}
+      data-mobile-favorites-only={showFavoritesOnly ? "true" : "false"}
     >
       <Header
         onRandom={openRandomItem}
